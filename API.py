@@ -169,9 +169,11 @@ def get_products():
             product_id = product[2]
             brand = product[3]
             category = product[4]
-            qty = product[5]
-            items.append({"product_description": product_description, "product_id": product_id,
-                        "brand": brand, "categor": category, "qty": qty})
+            cost = product[6]
+            items.append({"product_description": product_description, 
+"product_id": product_id,
+                        "brand": brand, "categor": category, "qty": 
+qty,"cost":cost})
     except (Exception, psycopg2.DatabaseError) as error:
         print("Error while quering DB")
         print(error)
