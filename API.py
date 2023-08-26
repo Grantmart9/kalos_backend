@@ -170,6 +170,7 @@ def get_products():
             brand = product[3]
             category = product[4]
             cost = product[6]
+            qty =product[5]
             items.append({"product_description": product_description, 
 "product_id": product_id,
                         "brand": brand, "categor": category, "qty": 
