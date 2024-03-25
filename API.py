@@ -20,7 +20,7 @@ app.debug = True
 ## User Authentication ##
 ####################################
 
-@app.route('/auth', methods=['GET'])
+@app.route('/auth', methods=['POST'])
 def users():
     conn = None
     Data = request.json
@@ -39,8 +39,10 @@ def users():
         cur.execute(query_string, (username, userpassword))
         ## Execute cur and fetch the row ##
         user_data = cur.fetchone()
+        user_id = user_data[0]
         ## if user_data returns not None deny access ##
         if user_data is not None:
+           
             ### First we need to search DB if JWT exists for this session ##
             query_string = 'SELECT * FROM user_token WHERE username=%s'
             ## SQL query ##
@@ -56,7 +58,7 @@ def users():
                 current_min = Current_time_datetime.minute
                 current_hour = Current_time_datetime.hour
                 ## Return JWT in body ##
-                con = {"JWT": jwt}
+                con = {"JWT": jwt,"user_id":user_id}
                 ## Insert new token if none exist ##
                 cur.execute("INSERT INTO user_token (username, jwt, stamp_min,stamp_hour) VALUES(%s,%s,%s,%s)",
                             (username, jwt, current_min, current_hour))
@@ -66,6 +68,8 @@ def users():
                 cur.close()
                 ## Close connection ##
                 conn.close()
+                
+
             if user_token is not None:
                 ## Initialise connection ##
                 conn = psycopg2.connect(host=host, database=database,
@@ -88,7 +92,7 @@ def users():
                 cur.close()
                 ## Close connection ##
                 conn.close()
-                con = {"JWT": token6}
+                con = {"JWT": token6,"user_id":user_id}
         ## If no data returned from sql query ##
         if user_data is None:
             con = "Invalid username or password"
