@@ -192,13 +192,13 @@ qty,"cost":cost})
 ####################################
 ## Get Cart ##
 ####################################
-@app.route('/get_cart', methods=['GET'])
+@app.route('/get_cart', methods=['POST'])
 def get_cart():
     conn = None
     message = "None"
     Data = request.json
-    token = request.headers['token']
-    cart_id = Data['cartid']
+    token = Data['token']
+    cart_id = Data['cart_id']
     try:
         ## configure connection paramters ##
         conn = psycopg2.connect(host=host, database=database,
@@ -241,9 +241,11 @@ def put_cart():
     conn = None
     message = "None"
     Data = request.json
-    token = request.headers['token']
-    cart_id = Data['cartid']
-    items = Data['items']
+    token = Data['token']
+    cart_id = Data['cart_id']
+    product_id = Data['product_code']
+    received_data = {"token":token,"cart_id":cart_id,"product_id":product_id}
+    print(received_data)
     try:
         ## configure connection paramters ##
         conn = psycopg2.connect(host=host, database=database,
@@ -255,17 +257,18 @@ def put_cart():
         jwt_token = cur.fetchone()
         if jwt_token is not None:
             ## Check if product_id and cartid combo exisists in DB ##
-            cur.execute("SELECT * FROM carts WHERE product_id = %s AND cartid = %s",
-                        (str(items['product_id']), cart_id,))
+            cur.execute("SELECT * FROM carts WHERE cartid = %s AND product_id = %s",
+                        (cart_id, str(product_id),))
             entry = cur.fetchone()
             # If it exisits meaning products = 0
             if entry is not None:
-                message = "product exisists"
+                message = "product exisists, adding to cart"
                 cur_qty = int(entry[6])
-                add_qty = int(items['qty'])
+                add_qty = int(Data['amount'])
                 new_qty = cur_qty + add_qty
-                cur.execute("UPDATE carts SET qty = %s WHERE product_id = %s AND cartid = %s", (str(
-                    new_qty), str(items['product_id']), cart_id,))
+                cur = conn.cursor()
+                cur.execute("UPDATE carts SET qty = %s WHERE cartid = %s AND product_id = %s", (
+                    new_qty, cart_id,product_id,))
                 conn.commit()
                 cur.execute(
                     "SELECT * FROM carts WHERE cartid = %s", (cart_id,))
@@ -285,12 +288,19 @@ def put_cart():
                 ## Remember to return updated tuple ##
             if entry is None:
                 try:
-                    cur.execute("INSERT INTO carts (cartid,product_description,product_id,brand,delivery_time,qty) VALUES(%s,%s,%s,%s,%s,%s)", (int(cart_id),
-                                items['product_description'], items['product_id'], items['brand'], int(items['delivery_time']), int(items['qty']),))
-                    conn.commit()
-                    cur.close()
-                    conn.close()
-                    message = "item added"
+                    cur.execute("SELECT * FROM products WHERE product_id = %s", (product_id,))
+                    product = cur.fetchall()
+                    for item in product:
+                        product_description_a = item[1]
+                        product_id_a = item[2]
+                        brand_a = item[4]
+                        delivery_time_a = item[5]
+                        
+                        cur.execute("INSERT INTO carts (cartid,product_description,product_id,brand,delivery_time,qty) VALUES(%s,%s,%s,%s,%s,%s)", (int(cart_id),product_description_a,product_id_a,brand_a,delivery_time_a,Data['amount'],))
+                        conn.commit()
+                        cur.close()
+                        conn.close()
+                        message = "item added" 
                 except (Exception, psycopg2.DatabaseError) as error:
                     print("Error while quering DB: "+str(error))
                 finally:
