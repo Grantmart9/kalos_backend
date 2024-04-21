@@ -384,21 +384,7 @@ def remove_row_from_cart():
             cur.execute("DELETE FROM carts WHERE cartid = %s AND product_id = %s", (
                     cart_id,product_id,))
             conn.commit()
-            cur.execute(
-                    "SELECT * FROM carts WHERE cartid = %s", (cart_id,))
-            returned_cart = cur.fetchall()
-            full_cart = []
-            for item in returned_cart:
-                product_description = item[2]
-                product_id = item[3]
-                brand = item[4]
-                delivery_time = item[5]
-                qty = item[6]
-                full_cart.append({"product_description": product_description,
-                                      "product_id": product_id, "brand": brand, "delivery_time": int(delivery_time), "qty": int(qty)})
-                message = full_cart
-                cur.close()
-                conn.close()
+            message = product_id + ": removed"
         if jwt_token is None:
             message = "User not authorised"
     except (Exception, psycopg2.DatabaseError) as error:
