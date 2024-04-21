@@ -222,7 +222,7 @@ def get_cart():
                                  "product_id": product_id, "brand": brand, "delivery_time": int(delivery_time), "qty": int(qty)})
             message = full_cart
         if jwt_token is None:
-            message = "user not authorised"
+            message = "user not authorised",401
 
     except (Exception, psycopg2.DatabaseError) as error:
         print("Error while quering DB: "+str(error))
@@ -313,6 +313,44 @@ def put_cart():
     finally:
         if conn is not None:
             conn.close()
+
+    return message
+
+#####################################
+## Remove from cart ##
+#####################################
+@app.route('/remove_from_cart', methods=['POST'])
+def remove_from_cart():
+    conn = None
+    Data = request.json
+    token = Data['token']
+    cart_id = Data['cart_id']
+    product_id = Data['product_code']
+    received_data = {"token":token,"cart_id":cart_id,"product_id":product_id}
+    print(received_data)
+    conn = psycopg2.connect(host=host, database=database,
+                                user=user, password=passphrase)
+    cur = conn.cursor()
+    ## Check if product_id and cartid combo exisists in DB ##
+    cur = conn.cursor()
+    cur.execute("UPDATE carts SET qty = qty - %s WHERE cartid = %s AND product_id = %s", (
+                    1, cart_id,product_id,))
+    conn.commit()
+    cur.execute(
+                    "SELECT * FROM carts WHERE cartid = %s", (cart_id,))
+    returned_cart = cur.fetchall()
+    full_cart = []
+    for item in returned_cart:
+        product_description = item[2]
+        product_id = item[3]
+        brand = item[4]
+        delivery_time = item[5]
+        qty = item[6]
+        full_cart.append({"product_description": product_description,
+                                      "product_id": product_id, "brand": brand, "delivery_time": int(delivery_time), "qty": int(qty)})
+        message = full_cart
+        cur.close()
+        conn.close()
 
     return message
 #####################################
