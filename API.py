@@ -12,14 +12,12 @@ database = "postgres"
 user = "postgres"
 passphrase = "Xiobh@nmart10"
 ####################################
-
 app = Flask(__name__)
 CORS(app)
 app.debug = True
 ####################################
 ## User Authentication ##
 ####################################
-
 @app.route('/auth', methods=['POST'])
 def users():
     conn = None
@@ -109,7 +107,6 @@ def users():
 ###################################
 ## Add new User ##
 ###################################
-
 @app.route('/put_users', methods=['POST'])
 def put_users():
     conn = None
@@ -153,7 +150,6 @@ def put_users():
 ###################################
 ## Get products ##
 ###################################
-
 @app.route('/get_products', methods=['GET'])
 def get_products():
     conn = None
@@ -186,9 +182,8 @@ qty,"cost":cost})
         if conn is not None:
             conn.close()
     return (jsonify(items))
-
 ####################################
-## JWT required requests ###########
+## !!! JWT required requests !!! ###
 ####################################
 ## Get Cart ##
 ####################################
@@ -234,8 +229,6 @@ def get_cart():
 #####################################
 ## Add To Cart ##
 #####################################
-
-
 @app.route('/add_to_cart', methods=['POST'])
 def put_cart():
     conn = None
@@ -315,7 +308,6 @@ def put_cart():
             conn.close()
 
     return message
-
 #####################################
 ## Remove from cart ##
 #####################################
@@ -326,36 +318,48 @@ def remove_from_cart():
     token = Data['token']
     cart_id = Data['cart_id']
     product_id = Data['product_code']
-    received_data = {"token":token,"cart_id":cart_id,"product_id":product_id}
-    print(received_data)
     conn = psycopg2.connect(host=host, database=database,
                                 user=user, password=passphrase)
     cur = conn.cursor()
-    ## Check if product_id and cartid combo exisists in DB ##
-    cur = conn.cursor()
-    cur.execute("UPDATE carts SET qty = qty - %s WHERE cartid = %s AND product_id = %s", (
+    try:
+        ## configure connection paramters ##
+        conn = psycopg2.connect(host=host, database=database,
+                                user=user, password=passphrase)
+        ## Connect ##
+        cur = conn.cursor()
+        ## Check if jwt exists in DB ##
+        cur.execute("SELECT * FROM user_token WHERE jwt = %s", (str(token),))
+        jwt_token = cur.fetchone()
+        if jwt_token is not None:
+            cur.execute("UPDATE carts SET qty = qty - %s WHERE cartid = %s AND product_id = %s", (
                     1, cart_id,product_id,))
-    conn.commit()
-    cur.execute(
+            conn.commit()
+            cur.execute(
                     "SELECT * FROM carts WHERE cartid = %s", (cart_id,))
-    returned_cart = cur.fetchall()
-    full_cart = []
-    for item in returned_cart:
-        product_description = item[2]
-        product_id = item[3]
-        brand = item[4]
-        delivery_time = item[5]
-        qty = item[6]
-        full_cart.append({"product_description": product_description,
+            returned_cart = cur.fetchall()
+            full_cart = []
+            for item in returned_cart:
+                product_description = item[2]
+                product_id = item[3]
+                brand = item[4]
+                delivery_time = item[5]
+                qty = item[6]
+                full_cart.append({"product_description": product_description,
                                       "product_id": product_id, "brand": brand, "delivery_time": int(delivery_time), "qty": int(qty)})
-        message = full_cart
-        cur.close()
-        conn.close()
-
+                message = full_cart
+                cur.close()
+                conn.close()
+        if jwt_token is None:
+            message = "User not authorised"
+    except (Exception, psycopg2.DatabaseError) as error:
+        print("Error while quering DB: " + str(error))
+    finally:
+        if conn is not None:
+            conn.close()
+    
     return message
-
 #####################################
-## Remove from cart ##
+## Remove row from cart ##
 #####################################
 @app.route('/remove_row_from_cart', methods=['POST'])
 def remove_row_from_cart():
@@ -364,37 +368,48 @@ def remove_row_from_cart():
     token = Data['token']
     cart_id = Data['cart_id']
     product_id = Data['product_code']
-    received_data = {"token":token,"cart_id":cart_id,"product_id":product_id}
-    print(received_data)
     conn = psycopg2.connect(host=host, database=database,
                                 user=user, password=passphrase)
     cur = conn.cursor()
-    ## Check if product_id and cartid combo exisists in DB ##
-    cur = conn.cursor()
-    cur.execute("DELETE FROM carts WHERE cartid = %s AND product_id = %s", (
+    try:
+        ## configure connection paramters ##
+        conn = psycopg2.connect(host=host, database=database,
+                                user=user, password=passphrase)
+        ## Connect ##
+        cur = conn.cursor()
+        ## Check if jwt exists in DB ##
+        cur.execute("SELECT * FROM user_token WHERE jwt = %s", (str(token),))
+        jwt_token = cur.fetchone()
+        if jwt_token is not None:
+            cur.execute("DELETE FROM carts WHERE cartid = %s AND product_id = %s", (
                     cart_id,product_id,))
-    conn.commit()
-    cur.execute(
+            conn.commit()
+            cur.execute(
                     "SELECT * FROM carts WHERE cartid = %s", (cart_id,))
-    returned_cart = cur.fetchall()
-    full_cart = []
-    for item in returned_cart:
-        product_description = item[2]
-        product_id = item[3]
-        brand = item[4]
-        delivery_time = item[5]
-        qty = item[6]
-        full_cart.append({"product_description": product_description,
+            returned_cart = cur.fetchall()
+            full_cart = []
+            for item in returned_cart:
+                product_description = item[2]
+                product_id = item[3]
+                brand = item[4]
+                delivery_time = item[5]
+                qty = item[6]
+                full_cart.append({"product_description": product_description,
                                       "product_id": product_id, "brand": brand, "delivery_time": int(delivery_time), "qty": int(qty)})
-        message = full_cart
-        cur.close()
-        conn.close()
-
+                message = full_cart
+                cur.close()
+                conn.close()
+        if jwt_token is None:
+            message = "User not authorised"
+    except (Exception, psycopg2.DatabaseError) as error:
+        print("Error while quering DB: " + str(error))
+    finally:
+        if conn is not None:
+            conn.close()
     return message
 #####################################
-## Order data ##
+## Get Order data ##
 #####################################
-
 @app.route('/get_order', methods=['GET'])
 def get_order():
     conn = None
@@ -419,6 +434,9 @@ def get_order():
             conn.close()
 
     return ("get order")
+#####################################
+## Put Order data ##
+#####################################
 @app.route('/put_order_auth', methods=['POST'])
 def put_order_auth():
     conn = None
